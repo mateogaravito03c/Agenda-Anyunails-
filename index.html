@@ -2,68 +2,45 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda Manicurista</title>
+<title>Agenda Anyunails</title>
 
 <style>
 body {
-    font-family: Arial, sans-serif;
-    background: #f8f9fa;
+    font-family: Arial;
+    background: #f4f4f4;
     padding: 20px;
 }
-
 .container {
-    max-width: 800px;
+    max-width: 600px;
     background: white;
+    padding: 20px;
     margin: auto;
-    padding: 25px;
     border-radius: 10px;
 }
-
 h1 {
     text-align: center;
     color: #e91e63;
 }
-
 input, select, button {
     width: 100%;
+    padding: 10px;
     margin-bottom: 10px;
-    padding: 8px;
-    font-size: 16px;
 }
-
 button {
     background: #e91e63;
     color: white;
     border: none;
     cursor: pointer;
-    border-radius: 5px;
 }
-
-button:hover {
-    background: #d81b60;
-}
-
 .cita {
-    background: #f3e5f5;
-    padding: 15px;
-    margin-top: 15px;
-    border-left: 5px solid #9c27b0;
-    border-radius: 5px;
-}
-
-.urgente {
-    border-left-color: red;
-    background: #ffebee;
-}
-
-.cita h3 {
-    margin: 0;
-}
-
-.eliminar {
-    background: #555;
+    background: #fce4ec;
+    padding: 10px;
     margin-top: 10px;
+    border-left: 5px solid #e91e63;
+}
+.admin {
+    margin-top: 30px;
+    display: none;
 }
 </style>
 </head>
@@ -71,103 +48,108 @@ button:hover {
 <body>
 
 <div class="container">
-<h1>💅 Agenda de Manicurista</h1>
+<h1>💅 Agenda Anyunails</h1>
 
+<!-- CLIENTE -->
+<h3>Reservar cita</h3>
 <form id="form">
-<input type="text" id="nombre" placeholder="Nombre del cliente" required>
-
+<input type="text" id="nombre" placeholder="Tu nombre" required>
 <input type="date" id="fecha" required>
 
 <select id="hora" required>
-<option value="">Seleccionar hora</option>
-<option value="09:00">09:00</option>
-<option value="10:00">10:00</option>
-<option value="11:00">11:00</option>
-<option value="12:00">12:00</option>
-<option value="13:00">13:00</option>
-<option value="14:00">14:00</option>
-<option value="15:00">15:00</option>
-<option value="16:00">16:00</option>
+    <option value="">Selecciona hora</option>
+    <option value="09:00">09:00 am</option>
+    <option value="12:00">12:00 pm</option>
+    <option value="15:00">03:00 pm</option>
+    <option value="18:00">06:00 pm</option>
 </select>
 
-<label>
-<input type="checkbox" id="urgente"> ⚠️ Cita urgente
-</label>
-
-<button type="submit">Guardar cita</button>
+<button type="submit">Agendar</button>
 </form>
 
+<!-- LOGIN MANICURISTA -->
+<h3>🔐 Acceso manicurista</h3>
+<input type="password" id="clave" placeholder="Clave">
+<button onclick="login()">Entrar</button>
+
+<!-- PANEL MANICURISTA -->
+<div class="admin" id="panelAdmin">
+<h3>👩‍💼 Citas agendadas</h3>
 <div id="lista"></div>
+<button onclick="logout()">Cerrar sesión</button>
+</div>
+
 </div>
 
 <script>
-// ================================
-// CARGAR CITAS
-// ================================
+const CLAVE_ADMIN = "anyunails123";
 let citas = JSON.parse(localStorage.getItem("citas")) || [];
-mostrar();
 
-// ================================
-// GUARDAR CITA (EVITA REPETIDAS)
-// ================================
+// AGENDAR
 document.getElementById("form").addEventListener("submit", function(e) {
     e.preventDefault();
 
-    const existe = citas.some(c =>
-        c.fecha === fecha.value && c.hora === hora.value
+    const nombre = document.getElementById("nombre").value;
+    const fecha = document.getElementById("fecha").value;
+    const hora = document.getElementById("hora").value;
+
+    const ocupada = citas.some(c =>
+        c.fecha === fecha && c.hora === hora
     );
 
-    if (existe) {
-        alert("⚠️ Ya existe una cita en esa fecha y hora");
+    if (ocupada) {
+        alert("❌ Ese horario ya está ocupado");
         return;
     }
 
-    const cita = {
-        id: Date.now(),
-        nombre: nombre.value,
-        fecha: fecha.value,
-        hora: hora.value,
-        urgente: urgente.checked
-    };
-
-    citas.push(cita);
+    citas.push({ id: Date.now(), nombre, fecha, hora });
     localStorage.setItem("citas", JSON.stringify(citas));
+
+    alert("✅ Cita agendada correctamente");
     this.reset();
-    mostrar();
 });
 
-// ================================
-// MOSTRAR CITAS (MEJOR VISUAL)
-// ================================
+// LOGIN
+function login() {
+    const clave = document.getElementById("clave").value;
+    if (clave === CLAVE_ADMIN) {
+        document.getElementById("panelAdmin").style.display = "block";
+        mostrar();
+    } else {
+        alert("❌ Clave incorrecta");
+    }
+}
+
+// LOGOUT
+function logout() {
+    document.getElementById("panelAdmin").style.display = "none";
+    document.getElementById("clave").value = "";
+}
+
+// MOSTRAR CITAS
 function mostrar() {
+    const lista = document.getElementById("lista");
     lista.innerHTML = "";
 
     if (citas.length === 0) {
-        lista.innerHTML = "<p>No hay citas registradas.</p>";
+        lista.innerHTML = "<p>No hay citas.</p>";
         return;
     }
 
     citas.forEach(c => {
         const div = document.createElement("div");
-        div.className = "cita" + (c.urgente ? " urgente" : "");
-
+        div.className = "cita";
         div.innerHTML = `
-            <h3>👤 ${c.nombre}</h3>
-            <p>📅 <strong>${c.fecha}</strong></p>
-            <p>⏰ <strong>${c.hora}</strong></p>
-            ${c.urgente ? "<p style='color:red'>⚠️ CITA URGENTE</p>" : ""}
-            <button class="eliminar" onclick="eliminar(${c.id})">🗑️ Eliminar</button>
+            <strong>${c.fecha} - ${c.hora}</strong><br>
+            Cliente: ${c.nombre}<br>
+            <button onclick="eliminar(${c.id})">Eliminar</button>
         `;
-
         lista.appendChild(div);
     });
 }
 
-// ================================
-// ELIMINAR CITA
-// ================================
+// ELIMINAR
 function eliminar(id) {
-    if (!confirm("¿Eliminar esta cita?")) return;
     citas = citas.filter(c => c.id !== id);
     localStorage.setItem("citas", JSON.stringify(citas));
     mostrar();
@@ -176,3 +158,9 @@ function eliminar(id) {
 
 </body>
 </html>
+
+</script>
+
+</body>
+</html>
+
