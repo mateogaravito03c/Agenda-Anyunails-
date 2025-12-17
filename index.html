@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Agenda Anyunails 💅</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
@@ -27,8 +27,8 @@
     }
 
     label {
-      display: block;
       margin-top: 10px;
+      display: block;
       font-weight: bold;
     }
 
@@ -45,11 +45,6 @@
       border: none;
       border-radius: 5px;
       margin-top: 15px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #d81b60;
     }
 
     .cita {
@@ -62,40 +57,54 @@
 </head>
 
 <body>
-  <h1>💅 Agenda Anyunails</h1>
 
-  <div class="card">
-    <form id="form">
-      <label>Nombre</label>
-      <input id="nombre" required />
+<script>
+  // 🔐 CLAVE PARA VER LAS CITAS (SOLO ELLA)
+  const CLAVE = "anyu2025";
+  const ingreso = prompt("🔐 Ingrese la clave");
 
-      <label>Fecha</label>
-      <input type="date" id="fecha" required />
+  if (ingreso !== CLAVE) {
+    document.body.innerHTML = "<h2 style='text-align:center'>Acceso restringido</h2>";
+    throw new Error("Acceso denegado");
+  }
+</script>
 
-      <label>Hora</label>
-      <select id="hora" required></select>
+<h1>💅 Agenda Anyunails</h1>
 
-      <button type="submit">Agendar cita</button>
-    </form>
+<div class="card">
+  <form id="form">
+    <label>Nombre</label>
+    <input id="nombre" required>
 
-    <h3 style="margin-top:20px">📅 Citas del día</h3>
-    <div id="lista"></div>
-  </div>
+    <label>Fecha</label>
+    <input type="date" id="fecha" required>
 
-  <!-- FIREBASE + LÓGICA -->
-  <script type="module">
-    // 🔥 FIREBASE
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      query,
-      where
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <label>Hora</label>
+    <select id="hora" required>
+      <option value="">Seleccione una fecha primero</option>
+    </select>
 
-   const firebaseConfig = {
+    <button type="submit">Agendar cita</button>
+  </form>
+
+  <h3 style="margin-top:20px">📅 Citas del día</h3>
+  <div id="lista"></div>
+</div>
+
+<script type="module">
+  // 🔥 FIREBASE
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // ⬇️⬇️⬇️ PEGÁ ACÁ TUS DATOS DE FIREBASE ⬇️⬇️⬇️
+  const firebaseConfig = {
     apiKey: "AIzaSyAkI8b0ivXClBtnVWudu2p1GiMN-yRn4DU",
     authDomain: "anyunails.firebaseapp.com",
     projectId: "anyunails",
@@ -103,36 +112,89 @@
     messagingSenderId: "763898100432",
     appId: "1:763898100432:web:e32720846e9a5c1d207cd5"
   };
-    // ⬆️⬆️⬆️ PEGÁ ACÁ TUS DATOS ⬆️⬆️⬆️
+  // ⬆️⬆️⬆️ PEGÁ ACÁ TUS DATOS DE FIREBASE ⬆️⬆️⬆️
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const form = document.getElementById("form");
-    const lista = document.getElementById("lista");
-    const horaSelect = document.getElementById("hora");
-    const fechaInput = document.getElementById("fecha");
+  const form = document.getElementById("form");
+  const lista = document.getElementById("lista");
+  const fecha = document.getElementById("fecha");
+  const hora = document.getElementById("hora");
 
-    // ⏰ HORARIOS CADA 3 HORAS (9AM a 9PM)
-    const HORAS = ["09:00", "12:00", "15:00", "18:00", "21:00"];
+  // ⏰ HORARIOS CADA 3 HORAS
+  const HORAS = ["09:00", "12:00", "15:00", "18:00", "21:00"];
 
-    function cargarHoras(disponibles) {
-      horaSelect.innerHTML = "";
-      disponibles.forEach(h => {
-        const op = document.createElement("option");
-        op.value = h;
-        op.textContent = h;
-        horaSelect.appendChild(op);
-      });
+  function cargarHoras(disponibles) {
+    hora.innerHTML = "";
+
+    if (disponibles.length === 0) {
+      const op = document.createElement("option");
+      op.textContent = "No hay horas disponibles";
+      hora.appendChild(op);
+      hora.disabled = true;
+      return;
     }
 
-    async function cargarCitas() {
-      lista.innerHTML = "";
-      if (!fechaInput.value) return;
+    const inicio = document.createElement("option");
+    inicio.value = "";
+    inicio.textContent = "Seleccione una hora";
+    hora.appendChild(inicio);
 
-      const q = query(
-        collection(db, "citas"),
-        where("fecha", "==", fechaInput.value)
-      );
+    disponibles.forEach(h => {
+      const op = document.createElement("option");
+      op.value = h;
+      op.textContent = h;
+      hora.appendChild(op);
+    });
 
-      const snap = await getDocs(q);
+    hora.disabled = false;
+  }
+
+  async function cargarCitas() {
+    lista.innerHTML = "";
+    if (!fecha.value) return;
+
+    const q = query(
+      collection(db, "citas"),
+      where("fecha", "==", fecha.value)
+    );
+
+    const snap = await getDocs(q);
+    const ocupadas = [];
+
+    snap.forEach(doc => {
+      const c = doc.data();
+      ocupadas.push(c.hora);
+      lista.innerHTML += `<div class="cita"><b>${c.hora}</b> - ${c.nombre}</div>`;
+    });
+
+    const libres = HORAS.filter(h => !ocupadas.includes(h));
+    cargarHoras(libres);
+  }
+
+  fecha.addEventListener("change", cargarCitas);
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    if (!hora.value) {
+      alert("Seleccione una hora");
+      return;
+    }
+
+    await addDoc(collection(db, "citas"), {
+      nombre: nombre.value,
+      fecha: fecha.value,
+      hora: hora.value
+    });
+
+    alert("✅ Cita agendada");
+    form.reset();
+    hora.innerHTML = "<option>Seleccione una fecha primero</option>";
+    lista.innerHTML = "";
+  });
+</script>
+
+</body>
+</html>
