@@ -1,166 +1,138 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Agenda Anyunails</title>
+  <meta charset="UTF-8" />
+  <title>Agenda Anyunails 💅</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<style>
-body {
-    font-family: Arial;
-    background: #f4f4f4;
-    padding: 20px;
-}
-.container {
-    max-width: 600px;
-    background: white;
-    padding: 20px;
-    margin: auto;
-    border-radius: 10px;
-}
-h1 {
-    text-align: center;
-    color: #e91e63;
-}
-input, select, button {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-button {
-    background: #e91e63;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-.cita {
-    background: #fce4ec;
-    padding: 10px;
-    margin-top: 10px;
-    border-left: 5px solid #e91e63;
-}
-.admin {
-    margin-top: 30px;
-    display: none;
-}
-</style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #e91e63;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #e91e63;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #d81b60;
+    }
+
+    .cita {
+      background: #f3e5f5;
+      margin-top: 10px;
+      padding: 10px;
+      border-left: 4px solid #9c27b0;
+    }
+  </style>
 </head>
 
 <body>
+  <h1>💅 Agenda Anyunails</h1>
 
-<div class="container">
-<h1>💅 Agenda Anyunails</h1>
+  <div class="card">
+    <form id="form">
+      <label>Nombre</label>
+      <input id="nombre" required />
 
-<!-- CLIENTE -->
-<h3>Reservar cita</h3>
-<form id="form">
-<input type="text" id="nombre" placeholder="Tu nombre" required>
-<input type="date" id="fecha" required>
+      <label>Fecha</label>
+      <input type="date" id="fecha" required />
 
-<select id="hora" required>
-    <option value="">Selecciona hora</option>
-    <option value="09:00">09:00 am</option>
-    <option value="12:00">12:00 pm</option>
-    <option value="15:00">03:00 pm</option>
-    <option value="18:00">06:00 pm</option>
-</select>
+      <label>Hora</label>
+      <select id="hora" required></select>
 
-<button type="submit">Agendar</button>
-</form>
+      <button type="submit">Agendar cita</button>
+    </form>
 
-<!-- LOGIN MANICURISTA -->
-<h3>🔐 Acceso manicurista</h3>
-<input type="password" id="clave" placeholder="Clave">
-<button onclick="login()">Entrar</button>
+    <h3 style="margin-top:20px">📅 Citas del día</h3>
+    <div id="lista"></div>
+  </div>
 
-<!-- PANEL MANICURISTA -->
-<div class="admin" id="panelAdmin">
-<h3>👩‍💼 Citas agendadas</h3>
-<div id="lista"></div>
-<button onclick="logout()">Cerrar sesión</button>
-</div>
+  <!-- FIREBASE + LÓGICA -->
+  <script type="module">
+    // 🔥 FIREBASE
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-</div>
+   const firebaseConfig = {
+    apiKey: "AIzaSyAkI8b0ivXClBtnVWudu2p1GiMN-yRn4DU",
+    authDomain: "anyunails.firebaseapp.com",
+    projectId: "anyunails",
+    storageBucket: "anyunails.firebasestorage.app",
+    messagingSenderId: "763898100432",
+    appId: "1:763898100432:web:e32720846e9a5c1d207cd5"
+  };
+    // ⬆️⬆️⬆️ PEGÁ ACÁ TUS DATOS ⬆️⬆️⬆️
 
-<script>
-const CLAVE_ADMIN = "anyunails123";
-let citas = JSON.parse(localStorage.getItem("citas")) || [];
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-// AGENDAR
-document.getElementById("form").addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    const nombre = document.getElementById("nombre").value;
-    const fecha = document.getElementById("fecha").value;
-    const hora = document.getElementById("hora").value;
-
-    const ocupada = citas.some(c =>
-        c.fecha === fecha && c.hora === hora
-    );
-
-    if (ocupada) {
-        alert("❌ Ese horario ya está ocupado");
-        return;
-    }
-
-    citas.push({ id: Date.now(), nombre, fecha, hora });
-    localStorage.setItem("citas", JSON.stringify(citas));
-
-    alert("✅ Cita agendada correctamente");
-    this.reset();
-});
-
-// LOGIN
-function login() {
-    const clave = document.getElementById("clave").value;
-    if (clave === CLAVE_ADMIN) {
-        document.getElementById("panelAdmin").style.display = "block";
-        mostrar();
-    } else {
-        alert("❌ Clave incorrecta");
-    }
-}
-
-// LOGOUT
-function logout() {
-    document.getElementById("panelAdmin").style.display = "none";
-    document.getElementById("clave").value = "";
-}
-
-// MOSTRAR CITAS
-function mostrar() {
+    const form = document.getElementById("form");
     const lista = document.getElementById("lista");
-    lista.innerHTML = "";
+    const horaSelect = document.getElementById("hora");
+    const fechaInput = document.getElementById("fecha");
 
-    if (citas.length === 0) {
-        lista.innerHTML = "<p>No hay citas.</p>";
-        return;
+    // ⏰ HORARIOS CADA 3 HORAS (9AM a 9PM)
+    const HORAS = ["09:00", "12:00", "15:00", "18:00", "21:00"];
+
+    function cargarHoras(disponibles) {
+      horaSelect.innerHTML = "";
+      disponibles.forEach(h => {
+        const op = document.createElement("option");
+        op.value = h;
+        op.textContent = h;
+        horaSelect.appendChild(op);
+      });
     }
 
-    citas.forEach(c => {
-        const div = document.createElement("div");
-        div.className = "cita";
-        div.innerHTML = `
-            <strong>${c.fecha} - ${c.hora}</strong><br>
-            Cliente: ${c.nombre}<br>
-            <button onclick="eliminar(${c.id})">Eliminar</button>
-        `;
-        lista.appendChild(div);
-    });
-}
+    async function cargarCitas() {
+      lista.innerHTML = "";
+      if (!fechaInput.value) return;
 
-// ELIMINAR
-function eliminar(id) {
-    citas = citas.filter(c => c.id !== id);
-    localStorage.setItem("citas", JSON.stringify(citas));
-    mostrar();
-}
-</script>
+      const q = query(
+        collection(db, "citas"),
+        where("fecha", "==", fechaInput.value)
+      );
 
-</body>
-</html>
-
-</script>
-
-</body>
-</html>
-
+      const snap = await getDocs(q);
