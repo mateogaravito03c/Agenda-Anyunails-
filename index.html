@@ -1,109 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Agenda Anyunails 💅</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda de Citas</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f8f9fa;
-      padding: 20px;
-    }
-
-    h1 {
-      text-align: center;
-      color: #e91e63;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 500px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,.1);
-    }
-
-    label {
-      margin-top: 10px;
-      display: block;
-      font-weight: bold;
-    }
-
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      font-size: 16px;
-    }
-
-    button {
-      background: #e91e63;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      margin-top: 15px;
-    }
-
-    .cita {
-      background: #f3e5f5;
-      margin-top: 10px;
-      padding: 10px;
-      border-left: 4px solid #9c27b0;
-    }
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; }
+    h2 { text-align: center; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 10px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f3f3f3; margin-top: 8px; padding: 10px; border-radius: 6px; }
+    button { cursor: pointer; }
   </style>
 </head>
-
 <body>
 
-<script>
-  // 🔐 CLAVE PARA VER LAS CITAS (SOLO ELLA)
-  const CLAVE = "anyu2025";
-  const ingreso = prompt("🔐 Ingrese la clave");
+<h2>Agenda tu cita</h2>
 
-  if (ingreso !== CLAVE) {
-    document.body.innerHTML = "<h2 style='text-align:center'>Acceso restringido</h2>";
-    throw new Error("Acceso denegado");
-  }
-</script>
+<form id="form">
+  <input type="text" id="nombre" placeholder="Tu nombre" required />
+  <input type="date" id="fecha" required />
+  <select id="hora" required>
+    <option value="">Seleccione una fecha primero</option>
+  </select>
+  <button type="submit">Agendar</button>
+</form>
 
-<h1>💅 Agenda Anyunails</h1>
-
-<div class="card">
-  <form id="form">
-    <label>Nombre</label>
-    <input id="nombre" required>
-
-    <label>Fecha</label>
-    <input type="date" id="fecha" required>
-
-    <label>Hora</label>
-    <select id="hora" required>
-      <option value="">Seleccione una fecha primero</option>
-    </select>
-
-    <button type="submit">Agendar cita</button>
-  </form>
-
-  <h3 style="margin-top:20px">📅 Citas del día</h3>
-  <div id="lista"></div>
-</div>
+<h3>Citas del día</h3>
+<ul id="listaCitas"></ul>
 
 <script type="module">
-  // 🔥 FIREBASE
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    where
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ⬇️⬇️⬇️ PEGÁ ACÁ TUS DATOS DE FIREBASE ⬇️⬇️⬇️
+  // 🔥 CONFIGURACIÓN FIREBASE
   const firebaseConfig = {
     apiKey: "AIzaSyAkI8b0ivXClBtnVWudu2p1GiMN-yRn4DU",
     authDomain: "anyunails.firebaseapp.com",
@@ -112,88 +44,106 @@
     messagingSenderId: "763898100432",
     appId: "1:763898100432:web:e32720846e9a5c1d207cd5"
   };
-  // ⬆️⬆️⬆️ PEGÁ ACÁ TUS DATOS DE FIREBASE ⬆️⬆️⬆️
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const form = document.getElementById("form");
-  const lista = document.getElementById("lista");
-  const fecha = document.getElementById("fecha");
-  const hora = document.getElementById("hora");
+  const CLAVE_ADMIN = "anyu2025";
 
-  // ⏰ HORARIOS CADA 3 HORAS
+  const form = document.getElementById("form");
+  const nombreInput = document.getElementById("nombre");
+  const fechaInput = document.getElementById("fecha");
+  const horaSelect = document.getElementById("hora");
+  const listaCitas = document.getElementById("listaCitas");
+
   const HORAS = ["09:00", "12:00", "15:00", "18:00", "21:00"];
 
+  fechaInput.addEventListener("change", () => cargarDisponibles());
+
+  async function cargarDisponibles() {
+    horaSelect.innerHTML = "";
+    const fecha = fechaInput.value;
+    if (!fecha) return;
+
+    const q = query(collection(db, "citas"), where("fecha", "==", fecha));
+    const snap = await getDocs(q);
+
+    const ocupadas = snap.docs.map(d => d.data().hora);
+    const libres = HORAS.filter(h => !ocupadas.includes(h));
+
+    cargarHoras(libres);
+    cargarCitas(fecha);
+  }
+
   function cargarHoras(disponibles) {
-    hora.innerHTML = "";
+    horaSelect.innerHTML = "";
 
     if (disponibles.length === 0) {
       const op = document.createElement("option");
       op.textContent = "No hay horas disponibles";
-      hora.appendChild(op);
-      hora.disabled = true;
+      horaSelect.appendChild(op);
+      horaSelect.disabled = true;
       return;
     }
 
-    const inicio = document.createElement("option");
-    inicio.value = "";
-    inicio.textContent = "Seleccione una hora";
-    hora.appendChild(inicio);
+    const opInicial = document.createElement("option");
+    opInicial.value = "";
+    opInicial.textContent = "Seleccione una hora";
+    horaSelect.appendChild(opInicial);
 
     disponibles.forEach(h => {
       const op = document.createElement("option");
       op.value = h;
       op.textContent = h;
-      hora.appendChild(op);
+      horaSelect.appendChild(op);
     });
 
-    hora.disabled = false;
+    horaSelect.disabled = false;
   }
 
-  async function cargarCitas() {
-    lista.innerHTML = "";
-    if (!fecha.value) return;
-
-    const q = query(
-      collection(db, "citas"),
-      where("fecha", "==", fecha.value)
-    );
-
-    const snap = await getDocs(q);
-    const ocupadas = [];
-
-    snap.forEach(doc => {
-      const c = doc.data();
-      ocupadas.push(c.hora);
-      lista.innerHTML += `<div class="cita"><b>${c.hora}</b> - ${c.nombre}</div>`;
-    });
-
-    const libres = HORAS.filter(h => !ocupadas.includes(h));
-    cargarHoras(libres);
-  }
-
-  fecha.addEventListener("change", cargarCitas);
-
-  form.addEventListener("submit", async e => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    if (!hora.value) {
-      alert("Seleccione una hora");
-      return;
-    }
+    const nombre = nombreInput.value;
+    const fecha = fechaInput.value;
+    const hora = horaSelect.value;
 
-    await addDoc(collection(db, "citas"), {
-      nombre: nombre.value,
-      fecha: fecha.value,
-      hora: hora.value
-    });
+    const confirmar = confirm(
+      `¿Confirmás la cita?\n\n📅 ${fecha}\n⏰ ${hora}\n👤 ${nombre}`
+    );
 
-    alert("✅ Cita agendada");
+    if (!confirmar) return;
+
+    await addDoc(collection(db, "citas"), { nombre, fecha, hora });
+
     form.reset();
-    hora.innerHTML = "<option>Seleccione una fecha primero</option>";
-    lista.innerHTML = "";
+    horaSelect.innerHTML = '<option>Seleccione una fecha primero</option>';
+    cargarDisponibles();
   });
+
+  async function cargarCitas(fecha) {
+    listaCitas.innerHTML = "";
+    const q = query(collection(db, "citas"), where("fecha", "==", fecha));
+    const snap = await getDocs(q);
+
+    snap.forEach(d => {
+      const { nombre, hora } = d.data();
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${hora}</strong> - ${nombre}
+        <button onclick="borrarCita('${d.id}')">❌</button>`;
+      listaCitas.appendChild(li);
+    });
+  }
+
+  window.borrarCita = async (id) => {
+    const clave = prompt("Ingrese la clave para borrar la cita:");
+    if (clave !== CLAVE_ADMIN) return alert("Clave incorrecta ❌");
+
+    if (!confirm("¿Seguro que querés borrar esta cita?")) return;
+
+    await deleteDoc(doc(db, "citas", id));
+    cargarDisponibles();
+  };
 </script>
 
 </body>
