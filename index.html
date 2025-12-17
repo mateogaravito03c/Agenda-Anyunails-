@@ -54,7 +54,7 @@ button:hover{transform:scale(1.05)}
 <script>
 const CLAVE = "anyu2025";
 
-// Configuración de Firebase ya con tu proyecto
+// Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAkI8b0ivXClBtnVWudu2p1GiMN-yRn4DU",
   authDomain: "anyunails.firebaseapp.com",
@@ -96,31 +96,39 @@ formCita.onsubmit = e => {
     });
 };
 
-// Escuchar cambios en tiempo real
-db.ref("citas").on("value", snapshot => {
-  listaCitas.innerHTML = "";
-  const citas = snapshot.val();
-  if(citas){
-    for(let id in citas){
-      const c = citas[id];
-      const d = document.createElement("div");
-      d.className = "cita";
-      d.innerHTML = `
-        <strong>${c.nombre}</strong><br>
-        📍 ${c.direccion}<br>
-        📞 ${c.telefono}<br>
-        📅 ${c.fecha} ⏰ ${c.hora}
-        <div class="acciones">
-          <button class="btn-borrar" onclick="borrarCita('${id}')">🗑️ Borrar</button>
-        </div>`;
-      listaCitas.appendChild(d);
+// Escuchar cambios en tiempo real con clave
+let claveAutorizada = false;
+function cargarCitas(){
+  db.ref("citas").on("value", snapshot => {
+    if(!claveAutorizada){
+      if(prompt("Clave para ver citas") !== CLAVE) return;
+      claveAutorizada = true;
     }
-  }
-});
+    listaCitas.innerHTML = "";
+    const citas = snapshot.val();
+    if(citas){
+      for(let id in citas){
+        const c = citas[id];
+        const d = document.createElement("div");
+        d.className = "cita";
+        d.innerHTML = `
+          <strong>${c.nombre}</strong><br>
+          📍 ${c.direccion}<br>
+          📞 ${c.telefono}<br>
+          📅 ${c.fecha} ⏰ ${c.hora}
+          <div class="acciones">
+            <button class="btn-borrar" onclick="borrarCita('${id}')">🗑️ Borrar</button>
+          </div>`;
+        listaCitas.appendChild(d);
+      }
+    }
+  });
+}
+cargarCitas();
 
 // Borrar cita
 function borrarCita(id){
-  if(prompt("Clave") !== CLAVE) return alert("❌ Clave incorrecta");
+  if(prompt("Clave para borrar") !== CLAVE) return alert("❌ Clave incorrecta");
   db.ref("citas/" + id).remove();
 }
 </script>
