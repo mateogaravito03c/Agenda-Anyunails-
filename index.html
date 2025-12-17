@@ -98,33 +98,34 @@ formCita.onsubmit = e => {
 
 // Escuchar cambios en tiempo real con clave
 let claveAutorizada = false;
-function cargarCitas(){
-  db.ref("citas").on("value", snapshot => {
-    if(!claveAutorizada){
-      if(prompt("Clave para ver citas") !== CLAVE) return;
-      claveAutorizada = true;
+db.ref("citas").on("value", snapshot => {
+  if(!claveAutorizada){
+    const ingresada = prompt("Clave para ver citas");
+    if(ingresada !== CLAVE) return alert("❌ Clave incorrecta");
+    claveAutorizada = true;
+  }
+
+  listaCitas.innerHTML = "";
+  const citas = snapshot.val();
+  if(citas){
+    for(let id in citas){
+      const c = citas[id];
+      const d = document.createElement("div");
+      d.className = "cita";
+      d.innerHTML = `
+        <strong>${c.nombre}</strong><br>
+        📍 ${c.direccion}<br>
+        📞 ${c.telefono}<br>
+        📅 ${c.fecha} ⏰ ${c.hora}
+        <div class="acciones">
+          <button class="btn-borrar" onclick="borrarCita('${id}')">🗑️ Borrar</button>
+        </div>`;
+      listaCitas.appendChild(d);
     }
-    listaCitas.innerHTML = "";
-    const citas = snapshot.val();
-    if(citas){
-      for(let id in citas){
-        const c = citas[id];
-        const d = document.createElement("div");
-        d.className = "cita";
-        d.innerHTML = `
-          <strong>${c.nombre}</strong><br>
-          📍 ${c.direccion}<br>
-          📞 ${c.telefono}<br>
-          📅 ${c.fecha} ⏰ ${c.hora}
-          <div class="acciones">
-            <button class="btn-borrar" onclick="borrarCita('${id}')">🗑️ Borrar</button>
-          </div>`;
-        listaCitas.appendChild(d);
-      }
-    }
-  });
-}
-cargarCitas();
+  } else {
+    listaCitas.innerHTML = "<p>No hay citas agendadas.</p>";
+  }
+});
 
 // Borrar cita
 function borrarCita(id){
