@@ -7,50 +7,14 @@
 
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-body{
-  background:linear-gradient(135deg,#fde2e4,#f9c5d1);
-  padding:20px;
-}
-.container{
-  max-width:900px;
-  margin:auto;
-  background:#fff;
-  padding:25px;
-  border-radius:18px;
-  box-shadow:0 20px 40px rgba(233,30,99,.25);
-}
+body{background:linear-gradient(135deg,#fde2e4,#f9c5d1);padding:20px;}
+.container{max-width:900px;margin:auto;background:#fff;padding:25px;border-radius:18px;box-shadow:0 20px 40px rgba(233,30,99,.25);}
 h1{text-align:center;color:#e91e63}
-h2{
-  color:#9c27b0;
-  border-left:6px solid #e91e63;
-  padding-left:10px;
-  margin-top:25px;
-}
-label{font-weight:600;color:#444}
-input,select,textarea{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  background:#fff0f5;
-  margin-bottom:10px;
-}
-button{
-  background:linear-gradient(135deg,#e91e63,#9c27b0);
-  color:white;
-  border:none;
-  padding:10px 18px;
-  border-radius:12px;
-  cursor:pointer;
-}
+h2{color:#9c27b0;border-left:6px solid #e91e63;padding-left:10px;margin-top:25px;}
+input,select{width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;background:#fff0f5;margin-bottom:10px;}
+button{background:linear-gradient(135deg,#e91e63,#9c27b0);color:white;border:none;padding:10px 18px;border-radius:12px;cursor:pointer;}
 button:hover{transform:scale(1.05)}
-.cita{
-  background:#fce4ec;
-  border-left:8px solid #e91e63;
-  padding:15px;
-  border-radius:14px;
-  margin-top:15px;
-}
+.cita{background:#fce4ec;border-left:8px solid #e91e63;padding:15px;border-radius:14px;margin-top:15px;}
 .acciones{display:flex;gap:8px;flex-wrap:wrap}
 .btn-borrar{background:#f44336}
 </style>
@@ -61,7 +25,6 @@ button:hover{transform:scale(1.05)}
 
 <h1>💅 Agenda de Manicuría</h1>
 
-<!-- FORM CITA -->
 <h2>➕ Agendar cita</h2>
 <form id="formCita">
   <input id="nombre" placeholder="Nombre del cliente" required>
@@ -79,63 +42,86 @@ button:hover{transform:scale(1.05)}
   <button>Guardar cita</button>
 </form>
 
-<!-- VER CITAS -->
 <h2>📅 Citas agendadas</h2>
-<button onclick="verCitas()">🔐 Ver / Borrar citas</button>
 <div id="listaCitas"></div>
 
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
-const CLAVE="anyu2025";
-let citas=JSON.parse(localStorage.getItem("citas"))||[];
+const CLAVE = "anyu2025";
 
-// FECHA MÍNIMA
-fecha.min=new Date().toISOString().split("T")[0];
+// Configuración de Firebase ya con tu proyecto
+const firebaseConfig = {
+  apiKey: "AIzaSyAkI8b0ivXClBtnVWudu2p1GiMN-yRn4DU",
+  authDomain: "anyunails.firebaseapp.com",
+  projectId: "anyunails",
+  storageBucket: "anyunails.firebasestorage.app",
+  messagingSenderId: "763898100432",
+  appId: "1:763898100432:web:e32720846e9a5c1d207cd5"
+};
 
-// GUARDAR CITA
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const formCita = document.getElementById("formCita");
+const listaCitas = document.getElementById("listaCitas");
+const fecha = document.getElementById("fecha");
+const nombre = document.getElementById("nombre");
+const direccion = document.getElementById("direccion");
+const telefono = document.getElementById("telefono");
+
+// Fecha mínima
+fecha.min = new Date().toISOString().split("T")[0];
+
+// Guardar cita
 formCita.onsubmit = e => {
   e.preventDefault();
-  if(citas.some(c => c.fecha === fecha.value && c.hora === hora.value))
-    return alert("⛔ Ese horario ya está ocupado");
-
-  citas.push({
-    id: Date.now(),
+  const nuevaCita = {
     nombre: nombre.value,
     direccion: direccion.value,
     telefono: telefono.value,
     fecha: fecha.value,
-    hora: hora.value
-  });
-
-  localStorage.setItem("citas", JSON.stringify(citas));
-  alert("✅ Cita agendada");
-  formCita.reset();
+    hora: document.getElementById("hora").value
+  };
+  const citaId = Date.now();
+  db.ref("citas/" + citaId).set(nuevaCita)
+    .then(() => {
+      alert("✅ Cita agendada");
+      formCita.reset();
+    });
 };
 
-// VER + BORRAR
-function verCitas(){
-  if(prompt("Clave") !== CLAVE) return alert("❌ Clave incorrecta");
+// Escuchar cambios en tiempo real
+db.ref("citas").on("value", snapshot => {
   listaCitas.innerHTML = "";
-  citas.forEach(c => {
-    const d = document.createElement("div");
-    d.className = "cita";
-    d.innerHTML = `
-      <strong>${c.nombre}</strong><br>
-      📍 ${c.direccion}<br>
-      📞 ${c.telefono}<br>
-      📅 ${c.fecha} ⏰ ${c.hora}
-      <div class="acciones">
-        <button class="btn-borrar" onclick="borrar(${c.id})">🗑️ Borrar</button>
-      </div>`;
-    listaCitas.appendChild(d);
-  });
-}
+  const citas = snapshot.val();
+  if(citas){
+    for(let id in citas){
+      const c = citas[id];
+      const d = document.createElement("div");
+      d.className = "cita";
+      d.innerHTML = `
+        <strong>${c.nombre}</strong><br>
+        📍 ${c.direccion}<br>
+        📞 ${c.telefono}<br>
+        📅 ${c.fecha} ⏰ ${c.hora}
+        <div class="acciones">
+          <button class="btn-borrar" onclick="borrarCita('${id}')">🗑️ Borrar</button>
+        </div>`;
+      listaCitas.appendChild(d);
+    }
+  }
+});
 
-function borrar(id){
-  citas=citas.filter(c=>c.id!==id);
-  localStorage.setItem("citas",JSON.stringify(citas));
-  verCitas();
+// Borrar cita
+function borrarCita(id){
+  if(prompt("Clave") !== CLAVE) return alert("❌ Clave incorrecta");
+  db.ref("citas/" + id).remove();
 }
 </script>
 </body>
