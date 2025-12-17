@@ -61,22 +61,12 @@ button:hover{transform:scale(1.05)}
 
 <h1>💅 Agenda de Manicuría</h1>
 
-<!-- INFO SALÓN -->
-<h2>📍 Información del Salón</h2>
-<p><strong>Dirección:</strong> <span id="verDireccion">No configurada</span></p>
-<p><strong>Teléfono:</strong> <span id="verTelefono">No configurado</span></p>
-<button onclick="editarInfo()">✏️ Editar información</button>
-
-<div id="formInfo" style="display:none">
-  <input id="direccionSalon" placeholder="Dirección del salón">
-  <input id="telefonoSalon" placeholder="Teléfono">
-  <button onclick="guardarInfo()">💾 Guardar</button>
-</div>
-
 <!-- FORM CITA -->
 <h2>➕ Agendar cita</h2>
 <form id="formCita">
   <input id="nombre" placeholder="Nombre del cliente" required>
+  <input id="direccion" placeholder="Dirección del cliente" required>
+  <input id="telefono" placeholder="Teléfono del cliente" required>
   <input type="date" id="fecha" required>
   <select id="hora" required>
     <option value="">Hora</option>
@@ -103,42 +93,37 @@ let citas=JSON.parse(localStorage.getItem("citas"))||[];
 // FECHA MÍNIMA
 fecha.min=new Date().toISOString().split("T")[0];
 
-// INFO SALÓN
-const info=JSON.parse(localStorage.getItem("infoSalon"))||{};
-verDireccion.textContent=info.direccion||"No configurada";
-verTelefono.textContent=info.telefono||"No configurado";
-
-function editarInfo(){
-  if(prompt("Clave")!==CLAVE)return alert("❌ Clave incorrecta");
-  formInfo.style.display="block";
-}
-function guardarInfo(){
-  const i={direccion:direccionSalon.value,telefono:telefonoSalon.value};
-  localStorage.setItem("infoSalon",JSON.stringify(i));
-  location.reload();
-}
-
 // GUARDAR CITA
-formCita.onsubmit=e=>{
+formCita.onsubmit = e => {
   e.preventDefault();
-  if(citas.some(c=>c.fecha===fecha.value && c.hora===hora.value))
+  if(citas.some(c => c.fecha === fecha.value && c.hora === hora.value))
     return alert("⛔ Ese horario ya está ocupado");
 
-  citas.push({id:Date.now(),nombre:nombre.value,fecha:fecha.value,hora:hora.value});
-  localStorage.setItem("citas",JSON.stringify(citas));
+  citas.push({
+    id: Date.now(),
+    nombre: nombre.value,
+    direccion: direccion.value,
+    telefono: telefono.value,
+    fecha: fecha.value,
+    hora: hora.value
+  });
+
+  localStorage.setItem("citas", JSON.stringify(citas));
   alert("✅ Cita agendada");
   formCita.reset();
 };
 
 // VER + BORRAR
 function verCitas(){
-  if(prompt("Clave")!==CLAVE)return alert("❌ Clave incorrecta");
-  listaCitas.innerHTML="";
-  citas.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="cita";
-    d.innerHTML=`
+  if(prompt("Clave") !== CLAVE) return alert("❌ Clave incorrecta");
+  listaCitas.innerHTML = "";
+  citas.forEach(c => {
+    const d = document.createElement("div");
+    d.className = "cita";
+    d.innerHTML = `
       <strong>${c.nombre}</strong><br>
+      📍 ${c.direccion}<br>
+      📞 ${c.telefono}<br>
       📅 ${c.fecha} ⏰ ${c.hora}
       <div class="acciones">
         <button class="btn-borrar" onclick="borrar(${c.id})">🗑️ Borrar</button>
@@ -146,6 +131,7 @@ function verCitas(){
     listaCitas.appendChild(d);
   });
 }
+
 function borrar(id){
   citas=citas.filter(c=>c.id!==id);
   localStorage.setItem("citas",JSON.stringify(citas));
