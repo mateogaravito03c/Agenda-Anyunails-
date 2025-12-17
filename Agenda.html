@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda Manicurista</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f8f9fa;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    background: white;
+    margin: auto;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+h1 {
+    text-align: center;
+    color: #e91e63;
+}
+
+input, select, button {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    font-size: 16px;
+}
+
+button {
+    background: #e91e63;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background: #d81b60;
+}
+
+.cita {
+    background: #f3e5f5;
+    padding: 15px;
+    margin-top: 15px;
+    border-left: 5px solid #9c27b0;
+    border-radius: 5px;
+}
+
+.urgente {
+    border-left-color: red;
+    background: #ffebee;
+}
+
+.cita h3 {
+    margin: 0;
+}
+
+.eliminar {
+    background: #555;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>💅 Agenda de Manicurista</h1>
+
+<form id="form">
+<input type="text" id="nombre" placeholder="Nombre del cliente" required>
+
+<input type="date" id="fecha" required>
+
+<select id="hora" required>
+<option value="">Seleccionar hora</option>
+<option value="09:00">09:00</option>
+<option value="10:00">10:00</option>
+<option value="11:00">11:00</option>
+<option value="12:00">12:00</option>
+<option value="13:00">13:00</option>
+<option value="14:00">14:00</option>
+<option value="15:00">15:00</option>
+<option value="16:00">16:00</option>
+</select>
+
+<label>
+<input type="checkbox" id="urgente"> ⚠️ Cita urgente
+</label>
+
+<button type="submit">Guardar cita</button>
+</form>
+
+<div id="lista"></div>
+</div>
+
+<script>
+// ================================
+// CARGAR CITAS
+// ================================
+let citas = JSON.parse(localStorage.getItem("citas")) || [];
+mostrar();
+
+// ================================
+// GUARDAR CITA (EVITA REPETIDAS)
+// ================================
+document.getElementById("form").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const existe = citas.some(c =>
+        c.fecha === fecha.value && c.hora === hora.value
+    );
+
+    if (existe) {
+        alert("⚠️ Ya existe una cita en esa fecha y hora");
+        return;
+    }
+
+    const cita = {
+        id: Date.now(),
+        nombre: nombre.value,
+        fecha: fecha.value,
+        hora: hora.value,
+        urgente: urgente.checked
+    };
+
+    citas.push(cita);
+    localStorage.setItem("citas", JSON.stringify(citas));
+    this.reset();
+    mostrar();
+});
+
+// ================================
+// MOSTRAR CITAS (MEJOR VISUAL)
+// ================================
+function mostrar() {
+    lista.innerHTML = "";
+
+    if (citas.length === 0) {
+        lista.innerHTML = "<p>No hay citas registradas.</p>";
+        return;
+    }
+
+    citas.forEach(c => {
+        const div = document.createElement("div");
+        div.className = "cita" + (c.urgente ? " urgente" : "");
+
+        div.innerHTML = `
+            <h3>👤 ${c.nombre}</h3>
+            <p>📅 <strong>${c.fecha}</strong></p>
+            <p>⏰ <strong>${c.hora}</strong></p>
+            ${c.urgente ? "<p style='color:red'>⚠️ CITA URGENTE</p>" : ""}
+            <button class="eliminar" onclick="eliminar(${c.id})">🗑️ Eliminar</button>
+        `;
+
+        lista.appendChild(div);
+    });
+}
+
+// ================================
+// ELIMINAR CITA
+// ================================
+function eliminar(id) {
+    if (!confirm("¿Eliminar esta cita?")) return;
+    citas = citas.filter(c => c.id !== id);
+    localStorage.setItem("citas", JSON.stringify(citas));
+    mostrar();
+}
+</script>
+
+</body>
+</html>
